@@ -26,6 +26,10 @@
 
 ;;; Code:
 
+(defcustom fasd-add-file-to-db-when-eshell nil
+  "Whether enable fasd db update when eshell directory changes"
+  :type 'boolean)
+
 (defgroup fasd nil
   "Navigate previously-visited files and directories easily"
   :group 'tools
@@ -111,9 +115,12 @@ QUERY can be passed optionally to avoid the prompt."
   "Add current file or directory to the Fasd database."
   (if (not (executable-find "fasd"))
       (message "Fasd executable cannot be found. It is required by `fasd.el'. Cannot add file/directory to the fasd db")
-    (let ((file (if (string= major-mode "dired-mode")
-                    dired-directory
-                  (buffer-file-name))))
+    (let ((file (cond ((string= major-mode "eshell-mode")
+		       default-directory)
+		      ((string= major-mode "dired-mode")
+		       dired-directory)
+		      (t
+		       (buffer-file-name)))))
       (when (and file
                  (stringp file)
                  (file-readable-p file))
@@ -134,9 +141,12 @@ QUERY can be passed optionally to avoid the prompt."
 
   (if global-fasd-mode
       (progn (add-hook 'find-file-hook 'fasd-add-file-to-db)
-             (add-hook 'dired-mode-hook 'fasd-add-file-to-db))
+             (add-hook 'dired-mode-hook 'fasd-add-file-to-db)
+	     (when fasd-add-file-to-db-when-eshell
+	       (add-hook 'eshell-directory-change-hook 'fasd-add-file-to-db)))
     (remove-hook 'find-file-hook 'fasd-add-file-to-db)
-    (remove-hook 'dired-mode-hook 'fasd-add-file-to-db)))
+    (remove-hook 'dired-mode-hook 'fasd-add-file-to-db)
+    (remove-hook 'eshell-directory-change-hook 'fasd-add-file-to-db)))
 
 (provide 'fasd)
 ;;; fasd.el ends here
