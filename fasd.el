@@ -68,7 +68,8 @@ to specify multiple flags separate them by spaces, e.g. `-a -r'"
 (when (featurep 'ivy)
   (ivy-set-actions
    'fasd-find-file
-   '(("o" fasd-find-file-action "find-file"))))
+   '(("o" fasd-find-file-action "find-file")
+     ("d" fasd-delete-file-from-db "delete-file-from-db"))))
 
 ;;;###autoload
 (defun fasd-find-file (prefix &optional query)
@@ -117,6 +118,10 @@ QUERY can be passed optionally to avoid the prompt."
                  (stringp file)
                  (file-readable-p file))
         (start-process "*fasd*" nil "fasd" "--add" file)))))
+
+;;;###autoload
+(defun fasd-delete-file-from-db (file)
+  (start-process "*fasd*" nil "fasd" "-D" file))
 
 ;;;###autoload
 (define-minor-mode global-fasd-mode
