@@ -73,7 +73,41 @@ to specify multiple flags separate them by spaces, e.g. `-a -r'"
   (ivy-set-actions
    'fasd-find-file
    '(("o" fasd-find-file-action "find-file")
+     ("d" fasd-delete-file-from-db "delete-file-from-db")))
+  (ivy-set-actions
+   'fasd-ivy-find-file
+   '(("o" fasd-find-file-action "find-file")
      ("d" fasd-delete-file-from-db "delete-file-from-db"))))
+
+;;;###autoload
+(defun fasd-ivy-find-file (prefix &optional query)
+  "Use fasd to open a file, or a directory with dired.
+If PREFIX is positive consider only directories.
+If PREFIX is -1 consider only files.
+If PREFIX is nil consider files and directories."
+  (interactive "P")
+  (if (not (executable-find "fasd"))
+      (error "Fasd executable cannot be found.  It is required by `fasd.el'.  Cannot use `fasd-find-file'")
+    (let* ((prompt "Fasd query: ")
+           (results
+            (split-string
+             (shell-command-to-string
+              (concat "fasd -l -R"
+                      (pcase (prefix-numeric-value prefix)
+                        (`-1 " -f ")
+                        ((pred (< 1)) " -d ")
+                        (_ (concat " " fasd-standard-search " ")))
+                      ))
+             "\n" t))
+           (file (when results
+                   ;; set `this-command' to `fasd-ivy-find-file' is required because
+                   ;; `read-from-minibuffer' modifies its value, while `ivy-completing-read'
+                   ;; assumes it to be its caller
+                   (setq this-command 'fasd-ivy-find-file)
+                   (ivy-read prompt results :action 'find-file))))
+      (if (not file)
+          (message "Fasd found nothing for query `%s'" file)
+        ))))
 
 ;;;###autoload
 (defun fasd-find-file (prefix &optional query)
